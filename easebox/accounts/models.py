@@ -10,7 +10,7 @@ import uuid
 
 from .managers import UserManager
 
-from .enums import (AccountStatus, Rating, Visibility, PricingFactor, 
+from .enums import (AccountStatus, Rating, Visibility, 
                    Plans, VehicleType, UserVerificationIDType,
                 )
 
@@ -78,7 +78,6 @@ class UserAccount(TimestampMixin, models.Model):
     owner = models.OneToOneField(User, related_name="account", on_delete=models.CASCADE)
     plan = models.CharField(choices=Plans.choices(), default=Plans.FREE)
     status = models.CharField(_("Account status"), choices=AccountStatus.choices(), default=AccountStatus.PENDING)
-    # wallet = models.ForeignKey("Wallet", on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self) -> str:
         return self.owner.email + "account"
@@ -124,8 +123,7 @@ class IndividualRider(Rider):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     owner = models.OneToOneField(User, related_name="individual", on_delete=models.CASCADE)
-    pricing = models.ForeignKey("PricingStructure", related_name="rider", on_delete=models.CASCADE)
-
+    
 class CompanyRider(Rider):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -155,20 +153,6 @@ class Company(TimestampMixin, VerificationMixin, models.Model):
     def __str__(self) -> str:
         return self.name
 
-class PricingStructure(TimestampMixin, models.Model):
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    owner = models.ForeignKey(User, related_name="pricing", on_delete=models.CASCADE)
-    factor = models.CharField(_("Pricing factor"), choices=PricingFactor.choices(), default=PricingFactor.DISTANCE)
-    price = models.FloatField(default=0.0, help_text=_("percentage"))
-    commission = models.FloatField(default=0.2, help_text=_("percentage"), editable=False)
-    # discount = models.FloatField(default=0.0, help_text=_("percentage"))
-    # discount_detail = models.TextField(max_length=900, null=True, blank=True)
-
-    def __str__(self) -> str:
-        return self.owner + "pricing"
-
 class Vehicle(TimestampMixin, VerificationMixin, models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -187,8 +171,6 @@ class Fleet(TimestampMixin, models.Model):
 
     owner = models.ForeignKey(User, related_name="fleet", on_delete=models.CASCADE)
     riders = models.ManyToManyField(CompanyRider, related_name="fleet")
-    fleet_pricing = models.ForeignKey(PricingStructure, related_name="fleet", on_delete=models.CASCADE, null=True, blank=True)
-    efficiency = models.IntegerField(default=0, help_text=_("In percentage"))
 
     def __str__(self) -> str:
         return self.owner.email + "fleet"

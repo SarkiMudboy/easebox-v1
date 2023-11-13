@@ -1,6 +1,6 @@
 from enum import Enum, IntEnum
   
-# create an ABC for enums to inherit
+# create an ABC for enums to inherit (put in abstract)
 
 
 class AccountStatus(str, Enum):
@@ -35,7 +35,7 @@ class Visibility(str, Enum):
     def choices(cls) -> list:
         return [(key.value, key.name) for key in cls]
     
-
+# removed so as not to break something idk..
 class PricingFactor(Enum):
     
     WEIGHT = ("WGHT")
