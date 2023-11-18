@@ -38,7 +38,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    email = models.EmailField(_("email_address"), unique=True)
+    email = models.EmailField(_("email_address"), unique=True, null=True, blank=True)
     phone_number = models.CharField(_("Phone number"), unique=True, null=True, blank=True)
 
     first_name = models.CharField(verbose_name="first name", max_length=250)
@@ -62,7 +62,11 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     objects = UserManager()
 
     def __str__(self) -> str:
-        return self.email
+
+        if self.email:
+            return self.email
+        
+        return self.phone_number
     
     def has_perm(self, perm, obj=None) -> bool:
         return True

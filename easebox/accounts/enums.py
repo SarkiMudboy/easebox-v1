@@ -35,7 +35,7 @@ class Visibility(str, Enum):
     def choices(cls) -> list:
         return [(key.value, key.name) for key in cls]
     
-# removed so as not to break something idk..
+# should remove but so as not to break something idk..
 class PricingFactor(Enum):
     
     WEIGHT = ("WGHT")
