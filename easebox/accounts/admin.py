@@ -10,10 +10,10 @@ class BoxUserAdmin(UserAdmin):
     form = UserChangeForm
     model = User
 
-    list_display = ("email", "is_staff", "is_active")
-    list_filter = ("email", "is_staff", "is_active")
+    list_display = ("email", "phone_number", "is_staff", "is_active")
+    list_filter = ("email", "phone_number", "is_staff", "is_active")
     fieldsets = (
-        (None, {"fields": ("email", "password")}),
+        (None, {"fields": ("email", "phone_number", "password")}),
         ("Permissions", {"fields": ("is_staff", "is_active", "groups", "user_permissions")}),
     )
 
@@ -21,7 +21,7 @@ class BoxUserAdmin(UserAdmin):
         (None, {
             "classes": ("wide",),
             "fields": (
-                ("first_name", "last_name"), "email",
+                ("first_name", "last_name"), "email", "phone_number",
                 "password1", "password2", "is_staff",
                 "is_active", "groups", "user_permissions",
             )

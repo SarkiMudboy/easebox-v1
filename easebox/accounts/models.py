@@ -6,7 +6,9 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+
 import uuid
+import pyotp
 
 from .managers import UserManager
 
@@ -54,6 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     is_verified = models.BooleanField(default=False)
     accept_terms = models.BooleanField(default=False)
 
+    phone_number_verification_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
     # support_tickets = models.Model(Tickets, null=True, blank=True, on_delete=models.CASCADE())
 
     USERNAME_FIELD = "email"
@@ -73,6 +76,19 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     
     def has_module_perms(self, app_label) -> bool:
         return True
+    
+    def authenticate_phone(self, otp):
+
+        "This authenticates the given otp for phone number verification"
+
+        provided_otp = 0
+        try:
+            provided_otp = int(otp)
+        except:
+            return False
+        
+        password = pyotp.TOTP(self.key, 20)
+        return password.verify(provided_otp)
 
 
 class UserAccount(TimestampMixin, models.Model):
@@ -84,8 +100,8 @@ class UserAccount(TimestampMixin, models.Model):
     status = models.CharField(_("Account status"), choices=AccountStatus.choices(), default=AccountStatus.PENDING)
 
     def __str__(self) -> str:
-        return self.owner.email + "account"
 
+        return "oooo"
 
 class Business(TimestampMixin, models.Model):
 
