@@ -118,6 +118,15 @@ AUTHENTICATION_BACKENDS = [
     'accounts.backends.EmailPhoneUsernameAuthenticationBackend'
 ]
 
+# Email
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_HOST_USER=env("EMAIL_ADDRESS")
+EMAIL_HOST_PASSWORD=env("EMAIL_APP_PASSWORD")
+EMAIL_PORT=env("SMTP_PORT")
+DEFAULT_FROM_EMAIL="easebox@gmail.com"
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 

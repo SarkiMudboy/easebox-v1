@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
 
 from .models import User
-from .twilio_sms import send_sms_msg
+from abstract.services.email.email_local import send_mail
 import pyotp
 
 
@@ -57,12 +57,6 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         user = User.objects.create(**validated_data)
         user.set_password(validated_data["password"])
         user.save()
-
-        # send verification sms
-        # totp = pyotp.TOTP(user.key, interval=100)
-        # otp = totp.now()
-        # message = f"Your easebox confirmation code is {str(otp)}. Valid for 10 minutes, one-time use only."
-        # sent = send_sms_msg(message, user.phone_number)
 
         return user
     

@@ -53,10 +53,15 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     address = models.CharField(_("Address"), null=True, blank=True)
     image = models.URLField(_("Profile picture url"), default="")
     saved = models.ForeignKey("Saved", null=True, blank=True, on_delete=models.CASCADE)
-    is_verified = models.BooleanField(default=False)
+    is_email_verified = models.BooleanField(default=False)
+    is_phone_number_verified = models.BooleanField(default=False)
     accept_terms = models.BooleanField(default=False)
 
     phone_number_verification_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    email_verification_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    
+    email_verification_key_expires = models.DateTimeField(_("Email key expires at"), null=True)
+
     # support_tickets = models.Model(Tickets, null=True, blank=True, on_delete=models.CASCADE())
 
     USERNAME_FIELD = "email"
@@ -87,8 +92,8 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
         except:
             return False
         
-        password = pyotp.TOTP(self.key, 20)
-        return password.verify(provided_otp)
+        password = pyotp.HOTP(self.key)
+        return password.verify(provided_otp, 1)
 
 
 class UserAccount(TimestampMixin, models.Model):

@@ -11,6 +11,12 @@ django = "^4.2.6"
 djangorestframework = "^3.14.0"
 django-environ = "^0.11.2"
 psycopg2 = "^2.9.9"
+djangorestframework-simplejwt = "^5.3.0"
+python-decouple = "^3.8"
+twilio = "^8.10.2"
+pyotp = "^2.9.0"
+pendulum = "^2.1.2"
+six = "^1.16.0"
 
 
 [build-system]
