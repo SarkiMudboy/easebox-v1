@@ -17,6 +17,7 @@ twilio = "^8.10.2"
 pyotp = "^2.9.0"
 pendulum = "^2.1.2"
 six = "^1.16.0"
+celery = "^5.3.6"
 
 
 [build-system]

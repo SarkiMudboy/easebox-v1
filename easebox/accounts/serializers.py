@@ -1,7 +1,7 @@
 from xml.dom import ValidationErr
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-from rest_framework_simplejwt.tokens import RefreshToken
+# from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
 
 from .models import User
@@ -51,24 +51,24 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         return attrs
 
     
-    def create(self, validated_data):
+    # def create(self, validated_data): # might move to handler too
         
-        validated_data.pop("password2")
-        user = User.objects.create(**validated_data)
-        user.set_password(validated_data["password"])
-        user.save()
+    #     validated_data.pop("password2")
+    #     user = User.objects.create(**validated_data)
+    #     user.set_password(validated_data["password"])
+    #     user.save()
 
-        return user
+    #     return user
     
-    def get_tokens(self, user):
+    # def get_tokens(self, user): # might move to handler lets see...
 
-        token = RefreshToken.for_user(user)
+    #     token = RefreshToken.for_user(user)
 
-        data = {
-            "access": str(token.access_token),
-            "refresh": str(token)
-        }
-        return data
+    #     data = {
+    #         "access": str(token.access_token),
+    #         "refresh": str(token)
+    #     }
+    #     return data
     
     def to_representation(self, instance: dict) -> dict:
 

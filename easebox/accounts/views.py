@@ -25,15 +25,17 @@ class RegisterView(APIView):
         
         serializer = RegisterUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        # serializer.save() remove this 
 
         print(serializer.data)
 
-        id_field = "email" if not serializer.data.get("phone_number") else "phone_number"
+        id_field = "email" if not serializer.data.get("phone_number") else "phone_number" # move to verification handler
+
+        #after class returns
 
         user = authenticate(request, username=serializer.data[id_field], password=request.data["password"])
 
-        # create a verification class that verifies either phone or email
+        # create a verification class that verifies either phone or email*
         if user and id_field == "email":
             sent = verify_email(request, user)
 
