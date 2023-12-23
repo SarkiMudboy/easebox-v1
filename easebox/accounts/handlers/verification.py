@@ -7,7 +7,8 @@ User = get_user_model()
 
 class VerificationHandlerFactory(object):
 
-    def get(self, endpoint):
+    @staticmethod
+    def get(endpoint: str) -> Handler:
 
         enpoint_handlers = {
             "email": EmailVerificationHandler,
@@ -26,20 +27,20 @@ class EmailVerificationHandler(Handler):
         
         self.verify(data)
 
-        return self.response()
+        return self.response(data)
     
     def validate(self, data):
         pass
 
     def verify(self, data: Dict[str, Any]):
 
-        request = data.get("request")
-        user = User.objects.get(id=user.id)
+        request = data.pop("request")
+        user = User.objects.get(id=data.get("id"))
 
         verify_email(request, user)
 
     def response(self, data):
-        pass
+        return None
 
 
 class PhoneNumberVerificationHandler(Handler):

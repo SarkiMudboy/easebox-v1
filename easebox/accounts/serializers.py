@@ -24,14 +24,12 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
 
-    tokens = serializers.SerializerMethodField()
-
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password = serializers.CharField(required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ["email", "phone_number", "first_name", "last_name", "password", "password2", "tokens"]
+        fields = ["email", "phone_number", "first_name", "last_name", "password", "password2"]
         extra_kwargs = {"password": {"write_only": True}, "password2": {"write_only": True}}
 
     def validate(self, attrs):

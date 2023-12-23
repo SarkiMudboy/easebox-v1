@@ -6,17 +6,18 @@ from rest_framework import permissions, authentication
 from rest_framework.views import APIView
 from .serializers import RegisterUserSerializer
 from rest_framework.response import Response
-from django.contrib.auth.mixins import LoginRequiredMixin
+# from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth import authenticate
 from django.core.mail import EmailMessage
 from rest_framework import status
 
-from .permissions import IsVerified
+# from .permissions import IsVerified
 from .viewsets import BaseCreateListRetrieveUpdateViewSet, AuthViewSet
-from abstract.services.sms.twilio_sms import send_sms_msg
+# from abstract.services.sms.twilio_sms import send_sms_msg
 from .verification.email.verify_email import verify_email, confirm_email
-import pyotp
+from .handlers.users import AccountHandlerFactory
+# import pyotp
 
 
 class RegisterView(APIView):
@@ -29,17 +30,16 @@ class RegisterView(APIView):
 
         print(serializer.data)
 
-        id_field = "email" if not serializer.data.get("phone_number") else "phone_number" # move to verification handler
+        handler = AccountHandlerFactory.get("create-business-user")
+        response = handler.run(serializer.data, request=request)
 
-        #after class returns
-
+        id_field = "email" if not serializer.data.get("phone_number") else "phone_number"
         user = authenticate(request, username=serializer.data[id_field], password=request.data["password"])
 
-        # create a verification class that verifies either phone or email*
-        if user and id_field == "email":
-            sent = verify_email(request, user)
-
-        return JsonResponse(serializer.data)
+        if user:
+            return JsonResponse(response)
+        
+        return Response(400)
 
 
 class EmailVerificationView(AuthViewSet):

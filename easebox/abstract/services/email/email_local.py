@@ -1,14 +1,25 @@
 import smtplib, ssl
+from django.core.mail import send_mail
+from django.conf import settings
 import os
 
-port = os.environ["SMTP_PORT"]  # 465 For SSL
-smtp_server = os.environ["SMTP_SERVER"]
-sender_email = os.environ["EMAIL_ADDRESS"]  # Enter your address
-app_password = os.environ["EMAIL_APP_PASSWORD"]
 
-def send_mail(message, receiver_email):
+class Email(object):
 
-    context = ssl.create_default_context()
-    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-        server.login(sender_email, app_password)
-        server.sendmail(sender_email, receiver_email, message)
+    def __init__(self, subject: str, message: str, to: str) -> None:
+
+        self.message = message
+        self.subject = subject
+        self.to = to
+        self.from_email = settings.DEFAULT_FROM_EMAIL
+
+    def send(self):
+
+        try:
+
+            send_mail(subject=self.subject, message=self.message, 
+                    from_email=self.from_email, recipient_list=[self.to], fail_silently=False)
+            
+        except Exception as e:
+            print(str(e))
+        

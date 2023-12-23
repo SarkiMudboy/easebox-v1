@@ -124,6 +124,7 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_HOST_USER=env("EMAIL_ADDRESS")
 EMAIL_HOST_PASSWORD=env("EMAIL_APP_PASSWORD")
 EMAIL_PORT=env("SMTP_PORT")
+EMAIL_USE_SSL=True
 DEFAULT_FROM_EMAIL="easebox@gmail.com"
 
 
@@ -157,3 +158,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
+
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"

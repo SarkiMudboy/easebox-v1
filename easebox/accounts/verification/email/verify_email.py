@@ -4,18 +4,20 @@ from django.contrib.auth import get_user_model
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.template.loader import render_to_string
-from django.core.mail import EmailMessage
+from django.contrib.auth.models import AbstractBaseUser
 from django.contrib import messages
 from django.urls import reverse
+
+from ...tasks import send_verification_mail
 
 from .email_activation_token import email_verification_token
 import pendulum
 
 
-User = get_user_model()
+User: AbstractBaseUser = get_user_model()
 
 
-def verify_email(request, user: User) -> bool:
+def verify_email(request, user: AbstractBaseUser) -> bool:
 
     url = get_current_site(request)
     user_id = urlsafe_base64_encode(force_bytes(user.id))
@@ -39,16 +41,7 @@ def verify_email(request, user: User) -> bool:
 
     message = render_to_string("accounts/verify-email.html", context)
 
-    email = EmailMessage(subject, message, to=[email])
-    email.content_subtype = "html"
-
-    try:
-        email.send()
-    except Exception as e:
-        print(str(e))
-        return False
-    
-    return True
+    send_verification_mail.delay(subject, message, email)
 
 
 def confirm_email(uid: str, token: str) -> bool:
