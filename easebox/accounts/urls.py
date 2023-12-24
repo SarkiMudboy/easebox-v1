@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, PhoneNumberVerificationView, EmailVerificationView
+from .views import RegisterView, PhoneNumberVerificationView, EmailVerificationView, EmailConfirmationView
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -8,7 +8,8 @@ from rest_framework_simplejwt.views import (
 send_otp = PhoneNumberVerificationView.as_view({"get": "send_otp_sms"})
 verify_phone_otp = PhoneNumberVerificationView.as_view({"post": "verify_otp"})
 
-verify_email = EmailVerificationView.as_view({"post": "confirm_email_token"})
+confirm_email = EmailConfirmationView.as_view({"post": "confirm_email_token"})
+verify_email = EmailVerificationView.as_view({"post": "verify_email"})
 
 urlpatterns = [
     path('register-user/', RegisterView.as_view(), name="sign-up"),
@@ -18,7 +19,8 @@ urlpatterns = [
     path('login/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # email
-    path('verify-email-confirm/<uid>/<token>/', verify_email, name="verify-email-confirm"),
+    path('verify-email/', verify_email, name="email-verify"),
+    path('verify-email-confirm/<uid>/<token>/', confirm_email, name="verify-email-confirm"),
 
     # phone
     path("send-phone-otp/", send_otp, name='send-phone-otp'),

@@ -1,4 +1,0 @@
-
-
-
-def verify_phone(): ...

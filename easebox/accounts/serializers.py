@@ -1,11 +1,8 @@
 from xml.dom import ValidationErr
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-# from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.password_validation import validate_password
-
 from .models import User
-from abstract.services.email.email_local import send_mail
 import pyotp
 
 
@@ -47,26 +44,6 @@ class RegisterUserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("First name and Last name must be provided.")
 
         return attrs
-
-    
-    # def create(self, validated_data): # might move to handler too
-        
-    #     validated_data.pop("password2")
-    #     user = User.objects.create(**validated_data)
-    #     user.set_password(validated_data["password"])
-    #     user.save()
-
-    #     return user
-    
-    # def get_tokens(self, user): # might move to handler lets see...
-
-    #     token = RefreshToken.for_user(user)
-
-    #     data = {
-    #         "access": str(token.access_token),
-    #         "refresh": str(token)
-    #     }
-    #     return data
     
     def to_representation(self, instance: dict) -> dict:
 

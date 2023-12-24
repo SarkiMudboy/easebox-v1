@@ -13,10 +13,11 @@ from django.core.mail import EmailMessage
 from rest_framework import status
 
 # from .permissions import IsVerified
-from .viewsets import BaseCreateListRetrieveUpdateViewSet, AuthViewSet
+from .viewsets import AuthViewSet
 # from abstract.services.sms.twilio_sms import send_sms_msg
 from .verification.email.verify_email import verify_email, confirm_email
 from .handlers.users import AccountHandlerFactory
+from .handlers.verification import VerificationHandlerFactory
 # import pyotp
 
 
@@ -37,12 +38,25 @@ class RegisterView(APIView):
         user = authenticate(request, username=serializer.data[id_field], password=request.data["password"])
 
         if user:
-            return JsonResponse(response)
+            return JsonResponse(response, status=status.HTTP_201_CREATED)
         
         return Response(400)
 
 
 class EmailVerificationView(AuthViewSet):
+
+    def verify_email(self, request):
+
+        data = request.data
+        data["request"] = request
+
+        handler = VerificationHandlerFactory.get("email")
+        handler.run(data)
+
+class EmailConfirmationView(AuthViewSet):
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
 
     def confirm_email_token(self, request, uid, token):
 
@@ -54,21 +68,16 @@ class EmailVerificationView(AuthViewSet):
         return Response(400)
 
 
-class PhoneNumberVerificationView(BaseCreateListRetrieveUpdateViewSet):
+class PhoneNumberVerificationView(AuthViewSet):
 
     def send_otp_sms(self, request, format=None, **kwargs):
 
-        cotp = pyotp.HOTP(request.user.key)
-        otp = cotp.at(1)
+        user = request.user
 
-        sms_message = f"Your easebox confirmation code is {str(otp)}. Valid for 10 minutes, one-time use only."
+        handler = VerificationHandlerFactory.get("phone")
+        error = handler.run(user.phone_number)
 
-        email = EmailMessage("Verify phone", sms_message, to=[request.user.email])
-        
-        try:
-            email.send()
-        except Exception as e:
-            print(str(e))
+        if error:
 
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -80,7 +89,9 @@ class PhoneNumberVerificationView(BaseCreateListRetrieveUpdateViewSet):
 
         otp = int(request.data.get("sms_code"))
 
-        if user.authenticate(otp):
+        handler = VerificationHandlerFactory.get("phone")
+
+        if handler.auhtenticate(otp):
 
             user.is_verified = True
             user.save()

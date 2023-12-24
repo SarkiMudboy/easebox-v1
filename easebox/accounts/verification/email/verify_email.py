@@ -24,14 +24,14 @@ def verify_email(request, user: AbstractBaseUser) -> bool:
     verification_token = email_verification_token.make_token(user)
 
     user.email_verification_key = verification_token
-    user.email_key_expires = pendulum.now("UTC").add(days=7)
+    user.email_verification_key_expires = pendulum.now("UTC").add(days=7)
     user.save()
 
     verify_email_path = reverse("verify-email-confirm", kwargs={"uid": user_id, "token": verification_token})
 
     email = user.email
     subject = "Verify Email"
-    verification_url = "%s://%s/%s"%(request.scheme, url.domain, verify_email_path)
+    verification_url = "%s://%s%s"%(request.scheme, url.domain, verify_email_path)
     
     context = {
         "request": request,
@@ -52,7 +52,7 @@ def confirm_email(uid: str, token: str) -> bool:
     except (OverflowError, TypeError, ValueError, User.DoesNotExist):
         user = None
     
-    if user is not None and email_verification_token.check_token(token) and user.email_verification_key_expires < pendulum.now():
+    if user is not None and not user.is_email_verified and email_verification_token.check_token(user, token) and user.email_verification_key_expires > pendulum.now():
 
         user.is_email_verified = True
         user.save()

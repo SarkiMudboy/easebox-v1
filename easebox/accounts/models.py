@@ -11,7 +11,6 @@ import uuid
 import pyotp
 
 from .managers import UserManager
-
 from .enums import (AccountStatus, Rating, Visibility, 
                    Plans, VehicleType, UserVerificationIDType,
                 )
@@ -81,19 +80,6 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     
     def has_module_perms(self, app_label) -> bool:
         return True
-    
-    def authenticate_phone(self, otp):
-
-        "This authenticates the given otp for phone number verification"
-
-        provided_otp = 0
-        try:
-            provided_otp = int(otp)
-        except:
-            return False
-        
-        password = pyotp.HOTP(self.key)
-        return password.verify(provided_otp, 1)
 
 
 class UserAccount(TimestampMixin, models.Model):

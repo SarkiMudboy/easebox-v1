@@ -1,5 +1,5 @@
 import smtplib, ssl
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.conf import settings
 import os
 
@@ -15,10 +15,11 @@ class Email(object):
 
     def send(self):
 
-        try:
+        mail = EmailMessage(self.subject, self.message, self.from_email, [self.to])
+        mail.content_subtype = "html"
 
-            send_mail(subject=self.subject, message=self.message, 
-                    from_email=self.from_email, recipient_list=[self.to], fail_silently=False)
+        try:
+            mail.send()
             
         except Exception as e:
             print(str(e))

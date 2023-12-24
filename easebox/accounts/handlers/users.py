@@ -63,7 +63,7 @@ class CreateBusinessUserHandler(Handler):
 
     def verify_user(self, data: Dict[str, Any], **kwargs) -> None:
         
-        id_field = "email" if not data.get("phone_number") else "phone_number"
+        id_field = "email" if not data.get("phone_number") else "phone"
         data["request"] = kwargs.get("request")
 
         handler = VerificationHandlerFactory.get(id_field)
