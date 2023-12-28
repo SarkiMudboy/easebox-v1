@@ -48,7 +48,6 @@ class CreateBusinessUserHandler(Handler):
     def create(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
         user = User.objects.create_user(**data)
-        user.set_password(data["password"])
         user.save()
 
         data["token"] = self.get_tokens(user)

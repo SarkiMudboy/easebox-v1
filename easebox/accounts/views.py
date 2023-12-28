@@ -4,26 +4,24 @@ from django.shortcuts import render
 from rest_framework import serializers
 from rest_framework import permissions, authentication
 from rest_framework.views import APIView
-from .serializers import RegisterUserSerializer
+from .serializers import RegisterUserSerializer, LoginSerializer
 from rest_framework.response import Response
-# from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.contrib.auth import authenticate
-from django.core.mail import EmailMessage
+from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # from .permissions import IsVerified
 from .viewsets import AuthViewSet
-# from abstract.services.sms.twilio_sms import send_sms_msg
 from .verification.email.verify_email import verify_email, confirm_email
 from .handlers.users import AccountHandlerFactory
 from .handlers.verification import VerificationHandlerFactory
-# import pyotp
 
 
 class RegisterView(APIView):
 
-    def post(self, request):
+    def post(self, request) -> Response:
         
         serializer = RegisterUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -43,34 +41,65 @@ class RegisterView(APIView):
         return Response(400)
 
 
+class LoginView(APIView):
+
+    def post(self, request: HttpRequest) -> Response:
+
+        serializer = LoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        id_field = "email" if not serializer.data.get("phone_number") else "phone_number"
+        user = authenticate(request, username=data[id_field], password=data["password"])
+
+        if not user or not user.is_active:
+            return JsonResponse({"detail": "invalid login credentials"}, status=status.HTTP_401_UNAUTHORIZED) # change the message here
+        
+        refresh = RefreshToken.for_user(user)
+
+        response = {
+            "access": str(refresh.access_token),
+            "refresh": str(refresh)
+        }
+
+        return JsonResponse(response, status=status.HTTP_200_OK)
+
+
+
 class EmailVerificationView(AuthViewSet):
 
-    def verify_email(self, request):
+    def verify_email(self, request: HttpRequest) -> Response:
 
         data = request.data
         data["request"] = request
 
         handler = VerificationHandlerFactory.get("email")
-        handler.run(data)
+        errors = handler.run(data)
+
+        if errors:
+            return Response(400)
+        
+        return Response(200)
 
 class EmailConfirmationView(AuthViewSet):
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
+    renderer_classes = [TemplateHTMLRenderer]
 
-    def confirm_email_token(self, request, uid, token):
+    def confirm_email_token(self, request: HttpRequest, uid: str, token: str) -> Response:
 
         verified = confirm_email(uid, token)
 
         if verified:
-            return Response(200)
+            return Response({}, template_name="accounts/email-verified.html")
         
         return Response(400)
 
 
 class PhoneNumberVerificationView(AuthViewSet):
 
-    def send_otp_sms(self, request, format=None, **kwargs):
+    def send_otp_sms(self, request: HttpRequest, format=None, **kwargs) -> Response:
 
         user = request.user
 
@@ -83,19 +112,19 @@ class PhoneNumberVerificationView(AuthViewSet):
 
         return Response(status=status.HTTP_200_OK)
 
-    def verify_otp(self, request, format=None, **kwargs):
+    def verify_otp(self, request: HttpRequest, format=None, **kwargs) -> Response:
 
         user = request.user
 
-        otp = int(request.data.get("sms_code"))
+        otp = str(request.data.get("sms_code"))
 
         handler = VerificationHandlerFactory.get("phone")
 
-        if handler.auhtenticate(otp):
+        if handler.authenticate(otp, user.phone_number):
 
-            user.is_verified = True
+            user.is_phone_number_verified = True
             user.save()
 
-            return Response({"email": "Your email has been verified"}, status=status.HTTP_200_OK)
+            return Response({"phone": "Your phone number has been verified"}, status=status.HTTP_200_OK)
         
-        return Response(dict(error="The provided code did not match or has expired"), status=status.HTTP_401_BAD_REQUEST)
+        return Response(dict(error="The provided code did not match or has expired"), status=status.HTTP_400_BAD_REQUEST)

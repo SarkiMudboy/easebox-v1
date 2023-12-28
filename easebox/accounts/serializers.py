@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 from .models import User
-import pyotp
+from typing import Dict, Any
 
 
 class RegisterUserSerializer(serializers.ModelSerializer):
@@ -29,7 +29,7 @@ class RegisterUserSerializer(serializers.ModelSerializer):
         fields = ["email", "phone_number", "first_name", "last_name", "password", "password2"]
         extra_kwargs = {"password": {"write_only": True}, "password2": {"write_only": True}}
 
-    def validate(self, attrs):
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
 
         if attrs.get('password2'):
             if attrs['password'] != attrs['password2']:
@@ -57,4 +57,19 @@ class RegisterUserSerializer(serializers.ModelSerializer):
                 pass
 
         return rep
-            
+
+
+class LoginSerializer(serializers.Serializer):
+
+    email = serializers.EmailField(
+        required=False,
+    )
+    phone_number = serializers.CharField(required=False)
+    password = serializers.CharField(required=True, write_only=True)
+
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+
+        if not attrs.get("email") and not attrs.get("phone_number"):
+            raise serializers.ValidationError("Invalid credentials")
+        
+        return attrs

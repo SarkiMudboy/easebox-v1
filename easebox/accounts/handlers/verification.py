@@ -76,6 +76,9 @@ class PhoneNumberVerificationHandler(Handler):
     
     def transform(self, data: Dict[str, Any]) -> str:
 
+        if data.get("request"):
+            data.pop("request")
+
         user_id = data.get("id")
 
         try:
@@ -100,7 +103,7 @@ class PhoneNumberVerificationHandler(Handler):
 
         send_verification_mail.delay(subject, sms_message, email)
 
-    def authenticate(self, otp):
+    def authenticate(self, otp, phone_number):
 
         "This authenticates the given otp for phone number verification"
 
@@ -110,7 +113,7 @@ class PhoneNumberVerificationHandler(Handler):
         except:
             return False
         
-        return OTP.verify_otp(provided_otp, self.phone_number, 200)
+        return OTP.verify_otp(provided_otp, phone_number, 200)
 
     def response(self):
         return None
