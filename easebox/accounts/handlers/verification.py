@@ -1,7 +1,7 @@
 from .abstract import Handler
 from typing import Dict, Optional, Any, List
 from django.contrib.auth import get_user_model
-from ..verification.email.verify_email import verify_email
+from ..verification.email.verify_email import verify_email, confirm_email
 from ..verification.phone.passwords.otp import OTP
 from ..tasks import send_verification_mail
 
@@ -51,6 +51,11 @@ class EmailVerificationHandler(Handler):
         user = User.objects.get(id=data.get("id"))
 
         verify_email(request, user)
+
+    @staticmethod
+    def confirm_email(uid: str, token: str) -> bool:
+        
+        return confirm_email(uid, token)
 
     def response(self, data: Dict[str, Any]):
         return None

@@ -89,7 +89,7 @@ class EmailConfirmationView(AuthViewSet):
 
     def confirm_email_token(self, request: HttpRequest, uid: str, token: str) -> Response:
 
-        verified = confirm_email(uid, token)
+        verified = VerificationHandlerFactory.get("email").confirm_email(uid, token)
 
         if verified:
             return Response({}, template_name="accounts/email-verified.html")
