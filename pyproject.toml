@@ -19,6 +19,7 @@ pendulum = "^2.1.2"
 six = "^1.16.0"
 celery = "^5.3.6"
 redis = "^5.0.1"
+pydantic = {extras = ["email"], version = "^2.5.3"}
 
 
 [build-system]

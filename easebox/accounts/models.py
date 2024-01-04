@@ -100,10 +100,10 @@ class Business(TimestampMixin, models.Model):
 
     owner = models.ForeignKey(User, related_name="business", on_delete=models.CASCADE)
     name = models.CharField(_("Business name"), max_length=600)
-    description = models.TextField(max_length=1000, null=True, blank=True)
-    address = models.CharField(_("Business address"), null=True, blank=True)
+    # description = models.TextField(max_length=1000, null=True, blank=True)
+    address = models.CharField(_("Business address"), null=True, blank=True) # may need to split this into street, city etc.
     
-    image = models.URLField(_("Business logo url"), default="")
+    # image = models.URLField(_("Business logo url"), default="")
     rc_num = models.CharField(_("RC Number"), null=True, blank=True)
     category = models.CharField(_("Category"), max_length=300, null=True, blank=True)
     # products = models.ManyToManyField("Products", related_name="business")
