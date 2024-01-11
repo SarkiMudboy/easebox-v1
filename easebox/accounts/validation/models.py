@@ -5,6 +5,8 @@ from django.contrib.auth.models import AbstractBaseUser
 
 User: AbstractBaseUser = get_user_model()
 
+# Validation here will be where I will customize the error messages
+# Base model classes  of every model then inherited in concrete classes where actual validation function will be written 
 
 class User(BaseModel):
 

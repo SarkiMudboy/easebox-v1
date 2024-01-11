@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "easebox-demo"
-version = "0.1.0"
+name = "easebox-app"
+version = "1.7.1"
 description = ""
 authors = ["abdul <abdoolihima@gmail.com>"]
 readme = "README.md"
@@ -23,5 +23,5 @@ pydantic = {extras = ["email"], version = "^2.5.3"}
 
 
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.7.1"]
 build-backend = "poetry.core.masonry.api"
