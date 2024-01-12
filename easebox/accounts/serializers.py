@@ -6,7 +6,10 @@ from .models import User
 from typing import Dict, Any
 
 
-class RegisterUserSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
+    ...
+
+class RegisterBusinessUserSerializer(serializers.ModelSerializer):
 
     # remove these fields from the serialized response if they're null
     null_fields = ["email", "phone_number"]
@@ -26,7 +29,7 @@ class RegisterUserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["email", "phone_number", "first_name", "last_name", "password", "password2"]
+        fields = ["email", "phone_number", "first_name", "last_name", "password", "password2", "accept_terms_and_privacy"]
         extra_kwargs = {"password": {"write_only": True}, "password2": {"write_only": True}}
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:

@@ -13,6 +13,7 @@ import pyotp
 from .managers import UserManager
 from .enums import (AccountStatus, Rating, Visibility, 
                    Plans, VehicleType, UserVerificationIDType,
+                   OperatingStates, OperatingCities
                 )
 
 
@@ -54,7 +55,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     saved = models.ForeignKey("Saved", null=True, blank=True, on_delete=models.CASCADE)
     is_email_verified = models.BooleanField(default=False)
     is_phone_number_verified = models.BooleanField(default=False)
-    accept_terms = models.BooleanField(default=False)
+    accept_terms_and_privacy = models.BooleanField(default=False)
 
     phone_number_verification_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
     email_verification_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
@@ -92,7 +93,7 @@ class UserAccount(TimestampMixin, models.Model):
 
     def __str__(self) -> str:
 
-        return "oooo"
+        return self.owner.email + " account"
 
 class Business(TimestampMixin, models.Model):
 
@@ -100,12 +101,12 @@ class Business(TimestampMixin, models.Model):
 
     owner = models.ForeignKey(User, related_name="business", on_delete=models.CASCADE)
     name = models.CharField(_("Business name"), max_length=600)
-    # description = models.TextField(max_length=1000, null=True, blank=True)
     address = models.CharField(_("Business address"), null=True, blank=True) # may need to split this into street, city etc.
-    
-    # image = models.URLField(_("Business logo url"), default="")
+    city = models.CharField(_("Business city"), choices=OperatingCities.choices, default=OperatingCities.ILORIN) # and I was right
+    state = models.CharField(choices=OperatingStates.choices, defualt=OperatingStates.KWARA)
     rc_num = models.CharField(_("RC Number"), null=True, blank=True)
     category = models.CharField(_("Category"), max_length=300, null=True, blank=True)
+    
     # products = models.ManyToManyField("Products", related_name="business")
     # deliveries = models.ManyToManyField(Delivery, on_delete=models.CASCADE)
 

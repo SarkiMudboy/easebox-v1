@@ -1,5 +1,9 @@
 from django.urls import path
-from .views import RegisterView, PhoneNumberVerificationView, EmailVerificationView, EmailConfirmationView, LoginView
+from .views import (
+    RegisterBusinessUserView, PhoneNumberVerificationView, 
+    EmailVerificationView, EmailConfirmationView, 
+    LoginView
+    )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -12,7 +16,7 @@ confirm_email = EmailConfirmationView.as_view({"get": "confirm_email_token"})
 verify_email = EmailVerificationView.as_view({"post": "verify_email"})
 
 urlpatterns = [
-    path('register-user/', RegisterView.as_view(), name="sign-up"),
+    path('register-business-user/', RegisterBusinessUserView.as_view(), name="sign-up"),
 
     # jwt
     path('login/', LoginView.as_view(), name='token_obtain_pair'),

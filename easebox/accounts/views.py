@@ -4,7 +4,7 @@ from django.shortcuts import render
 from rest_framework import serializers
 from rest_framework import permissions, authentication
 from rest_framework.views import APIView
-from .serializers import RegisterUserSerializer, LoginSerializer
+from .serializers import RegisterBusinessUserSerializer, LoginSerializer
 from rest_framework.response import Response
 from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.contrib.auth import authenticate
@@ -19,11 +19,11 @@ from .handlers.users import AccountHandlerFactory
 from .handlers.verification import VerificationHandlerFactory
 
 
-class RegisterView(APIView):
+class RegisterBusinessUserView(APIView):
 
     def post(self, request) -> Response:
         
-        serializer = RegisterUserSerializer(data=request.data)
+        serializer = RegisterBusinessUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         # serializer.save() remove this 
 

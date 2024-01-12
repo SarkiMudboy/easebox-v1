@@ -76,6 +76,21 @@ class UserVerificationIDType(str, Enum):
         return [(key.value, key.name) for key in cls]
 
 
+class OperatingCities(str, Enum):
 
+    ILORIN = "ILRN"
+
+    @classmethod
+    def choices(cls) -> list:
+        return [(key.value, key.name) for key in cls]
+
+class OperatingStates(str, Enum):
+
+    KWARA = "KWARA"
+
+    @classmethod
+    def choices(cls) -> list:
+        return [(key.value, key.name) for key in cls]
+    
     
 
