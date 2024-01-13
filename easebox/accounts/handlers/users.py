@@ -66,10 +66,9 @@ class CreateBusinessUserHandler(Handler):
         try:
             BusinessUser.model_validate(data)
         except ValidationError as e:
-    
-            print(e.errors())
 
             error = handle_errors(e.errors())
+            # print(error)
             return data, error
 
         return data, None

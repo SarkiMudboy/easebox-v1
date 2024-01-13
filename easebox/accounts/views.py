@@ -31,7 +31,7 @@ class RegisterBusinessUserView(APIView):
 
         handler = AccountHandlerFactory.get("create-business-user")
         response, errors = handler.run(serializer.data, request=request)
-
+        print(response, errors)
         if errors:
             return JsonResponse(errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -11,17 +11,17 @@ from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.models import AbstractBaseUser
 from ..enums import OperatingCities, OperatingStates
 
-from validators import PhoneNumber
+from .validators import PhoneNumber
 
 User: AbstractBaseUser = get_user_model()
 
 
 class BaseUser(BaseModel):
 
-    model_config_dict = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     first_name: str
-    lastname :str
+    last_name :str
     email: str
     phone_number: str
 
@@ -47,9 +47,7 @@ class BasePassword(BaseModel):
             password_validation.validate_password(password)
 
         except Exception as e:
-            
-            errors = list(e)
-            raise ValueError(errors[0])
+            raise ValueError(str(e))
         
         return password
 
@@ -60,9 +58,12 @@ class BaseEaseboxUser(BaseUser, BaseEmail, BasePhone, BasePassword):
 
 class Verified(BasePhone, BaseEmail):
 
+    phone: PhoneNumber
+    email: EmailStr
+
     @field_validator("email", "phone")
     @classmethod
-    def validate_email(cls, ID: str, values: ValidationInfo) -> str:
+    def validate(cls, ID: str, values: ValidationInfo) -> str:
 
         query = {f"{values.field_name}__iexact": ID}
         
@@ -77,7 +78,6 @@ class Verified(BasePhone, BaseEmail):
         return ID
 
 
-
 class BaseBusiness(BaseModel):
 
     name: str
@@ -85,23 +85,17 @@ class BaseBusiness(BaseModel):
     city: str
     state: str
     category: str
-    rc_num: Optional[str]
+    rc_num: Optional[str] = None
 
     @model_validator(mode="after")
-    @classmethod
     def validate_locations_type(self) -> 'BaseBusiness':
         
-        assert (
-            self.city.isalpha(), "Name must contain only alphabets",
-        )
-        assert (
-            self.state.isalpha(), "Name must contain only alphabets"
-        )
+        assert self.city.isalpha(), "Name must contain only alphabets"
+        assert self.state.isalpha(), "Name must contain only alphabets"
 
         return self
 
     @model_validator(mode="after")
-    @classmethod
     def check_supported_locations(self) -> 'BaseBusiness':
 
         if self.city not in OperatingCities.choices: 
@@ -112,7 +106,7 @@ class BaseBusiness(BaseModel):
         
         return self
 
-    @field_validator("city, state")
+    @field_validator("city", "state")
     @classmethod
     def validate_location(cls, v: str, value: ValidationInfo) -> str:
         assert v.isalpha(), f"{value.field_name} must contain only alphabets"
@@ -121,7 +115,7 @@ class BaseBusiness(BaseModel):
 class Business(BaseEaseboxUser, BaseBusiness):
 
     # Business
-    business_name: str = Field(max_length=600, serialization_alias="name", validation_alias="name")
+    name: str = Field(max_length=600)
     address: str = Field(max_lenth=600, required=True)
     city: str = Field(max_lenth=600, required=True)
     state: str = Field(max_lenth=100, required=True)
@@ -137,15 +131,15 @@ class BusinessUser(BaseUser, BaseEmail, BasePhone, BasePassword, BaseBusiness):
     email: Optional[EmailStr] = Field(description="User's email address")
     phone_number: Optional[PhoneNumber] = Field(description="User's phone number")
     
-    password: SecretStr = Field(max_length=250)
+    password: str = Field(max_length=250)
     accept_terms_and_privacy: StrictBool = Field(default=False)
 
     # Business
-    business_name: str = Field(max_length=600, required=True, serialization_alias="name", validation_alias="name")
+    name: str = Field(max_length=600, required=True)
     address: str = Field(max_lenth=600, required=True)
     city: str = Field(max_lenth=600, required=True)
     state: str = Field(max_lenth=100, required=True)
-    category: Optional[str]
+    category: Optional[str] = None
 
     # phone num in its base
 
@@ -161,9 +155,15 @@ class BusinessUser(BaseUser, BaseEmail, BasePhone, BasePassword, BaseBusiness):
         
         return identifier
 
-    @field_validator("first_name, last_name")
+    @field_validator("first_name", "last_name")
     @classmethod
     def validate_names(cls, name: str, value: ValidationInfo) -> str:
         assert name.isalpha(), f"{value.field_name} is not a valid name"
         return name
     
+    @field_validator("accept_terms_and_privacy")
+    @classmethod
+    def validate_accept_terms(cls, v: bool) -> bool:
+
+        assert v == True, "You must accept terms and privacy to continue"
+        return v

@@ -24,7 +24,7 @@ class RegisterBusinessUserSerializer(serializers.ModelSerializer):
         validators=[UniqueValidator(queryset=User.objects.all())]
     )
 
-    accept_terms_and_privacy = serializers.BooleanField(default=False, required=True)
+    accept_terms_and_privacy = serializers.BooleanField(required=True)
 
     password = serializers.CharField(required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)

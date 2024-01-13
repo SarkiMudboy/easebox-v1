@@ -27,7 +27,7 @@ services:
     container_name: EB
 
     volumes:
-      - ./easebox:/app/easbox
+      - ./easebox:/app/easebox
 
     working_dir: /app/easebox
     command: >
