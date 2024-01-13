@@ -30,7 +30,10 @@ class RegisterBusinessUserView(APIView):
         print(serializer.data)
 
         handler = AccountHandlerFactory.get("create-business-user")
-        response = handler.run(serializer.data, request=request)
+        response, errors = handler.run(serializer.data, request=request)
+
+        if errors:
+            return JsonResponse(errors, status=status.HTTP_400_BAD_REQUEST)
 
         id_field = "email" if not serializer.data.get("phone_number") else "phone_number"
         user = authenticate(request, username=serializer.data[id_field], password=request.data["password"])

@@ -4,8 +4,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import AbstractBaseUser
 from typing import Dict, Optional, Any
 from .abstract import Handler
+
 from .verification import VerificationHandlerFactory
+from ..validation.models import BusinessUser
+from ..validation.validators import handle_errors
+
 from abc import ABC
+from pydantic import ValidationError
 
 User: AbstractBaseUser = get_user_model()
 
@@ -30,7 +35,7 @@ class CreateBusinessUserHandler(Handler):
         data, errors = self.validate(data)
 
         if errors:
-            return errors
+            return data, errors
         
         data = self.create(data)
 
@@ -58,10 +63,27 @@ class CreateBusinessUserHandler(Handler):
     
     def validate(self, data: Dict[str, Any]):
 
-        return data, None # change later
+        try:
+            BusinessUser.model_validate(data)
+        except ValidationError as e:
+    
+            print(e.errors())
+
+            error = handle_errors(e.errors())
+            return data, error
+
+        return data, None
 
     def verify_user(self, data: Dict[str, Any], **kwargs) -> None:
+
+        # If the user provides both email and phone number, we don't need to handle verification here 
+        # The verification endpoints will be used instead as the user will choose preffered channel
+
+        if data.get("phone_number") and data.get("email"):
+            return
         
+        # if not, proceed...
+
         id_field = "email" if not data.get("phone_number") else "phone"
         data["request"] = kwargs.get("request")
 
@@ -80,5 +102,5 @@ class CreateBusinessUserHandler(Handler):
         return token
 
     def response(self, data):
-        return data
+        return data, None
         

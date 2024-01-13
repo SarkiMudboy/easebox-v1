@@ -1,9 +1,14 @@
+from django.contrib.auth.models import AbstractBaseUser
 from .abstract import Handler
 from typing import Dict, Optional, Any, List
 from django.contrib.auth import get_user_model
 from ..verification.email.verify_email import verify_email, confirm_email
 from ..verification.phone.passwords.otp import OTP
 from ..tasks import send_verification_mail
+
+from ..validation.models import Verified
+from ..validation.validators import handle_errors
+from pydantic import ValidationError
 
 User = get_user_model()
 
@@ -27,7 +32,10 @@ class EmailVerificationHandler(Handler):
 
         data = self.transform(data)
 
-        self.validate(data)
+        error = self.validate(data)
+
+        if error:
+            return error
         
         self.verify(data)
 
@@ -36,24 +44,38 @@ class EmailVerificationHandler(Handler):
     def transform(self, data: Dict[str, Any]) -> dict:
 
         if not data.get("id"):
-            user = data.get("request").user
-            data["id"] = user.id
+            data["user"] = data.get("request").user
+        else:
+            data["user"] = User.objects.get(id=data.get("id"))
 
         return data 
     
-    def validate(self, data: Dict[str, Any]):
-        # check if user email is verified here
-        pass
+    def validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
+        user = data.get("user")
+
+        try:
+            Verified(email=user.email)
+        except ValidationError as e:
+
+            error = handle_errors(e.errors())
+
+            return error
+            
     def verify(self, data: Dict[str, Any]) -> None:
 
         request = data.pop("request")
-        user = User.objects.get(id=data.get("id"))
+        user = data.get("user")
 
         verify_email(request, user)
 
     @staticmethod
-    def confirm_email(uid: str, token: str) -> bool:
+    def confirm_email(user: AbstractBaseUser ,uid: str, token: str) -> bool:
+
+        try:
+            Verified(phone=user.phone_number)
+        except ValidationError as e:
+            return False
         
         return confirm_email(uid, token)
 
@@ -93,8 +115,14 @@ class PhoneNumberVerificationHandler(Handler):
 
         return user.phone_number
     
-    def validate(self, phone_number: str):
-        pass
+    def validate(self, phone_number: str) -> Dict[str, str]:
+        
+        try:
+            Verified(phone=phone_number)
+        except ValidationError as e:
+            error = handle_errors(e.errors)
+
+            return error
 
     def verify(self, phone_number: str) -> None:
 
@@ -108,9 +136,14 @@ class PhoneNumberVerificationHandler(Handler):
 
         send_verification_mail.delay(subject, sms_message, email)
 
-    def authenticate(self, otp, phone_number):
+    def authenticate(self, otp, phone_number) -> bool:
 
         "This authenticates the given otp for phone number verification"
+
+        try:
+            Verified(phone=phone_number)
+        except ValidationError:
+            return False
 
         provided_otp = 0
         try:

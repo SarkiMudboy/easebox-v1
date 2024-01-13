@@ -52,7 +52,7 @@ def confirm_email(uid: str, token: str) -> bool:
     except (OverflowError, TypeError, ValueError, User.DoesNotExist):
         user = None
     
-    if user is not None and not user.is_email_verified and email_verification_token.check_token(user, token) and user.email_verification_key_expires > pendulum.now():
+    if user is not None and email_verification_token.check_token(user, token) and user.email_verification_key_expires > pendulum.now():
 
         user.is_email_verified = True
         user.save()
