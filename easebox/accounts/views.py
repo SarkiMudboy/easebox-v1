@@ -1,9 +1,11 @@
 import re
-from django.contrib.sites.shortcuts import get_current_site
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractBaseUser
 from django.shortcuts import render
 from rest_framework import serializers
 from rest_framework import permissions, authentication
 from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from .serializers import RegisterBusinessUserSerializer, LoginSerializer
 from rest_framework.response import Response
 from django.http import HttpResponse, JsonResponse, HttpRequest
@@ -19,19 +21,21 @@ from .handlers.users import AccountHandlerFactory
 from .handlers.verification import VerificationHandlerFactory
 
 
-class RegisterBusinessUserView(APIView):
+User: AbstractBaseUser = get_user_model()
+
+class RegisterBusinessUserView(GenericAPIView):
+
+    serializer_class = RegisterBusinessUserSerializer
+    queryset = User.objects.all()
 
     def post(self, request) -> Response:
         
         serializer = RegisterBusinessUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        # serializer.save() remove this 
-
-        print(serializer.data)
 
         handler = AccountHandlerFactory.get("create-business-user")
         response, errors = handler.run(serializer.data, request=request)
-        print(response, errors)
+        
         if errors:
             return JsonResponse(errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -93,7 +97,7 @@ class EmailConfirmationView(AuthViewSet):
     def confirm_email_token(self, request: HttpRequest, uid: str, token: str) -> Response:
 
         verified = VerificationHandlerFactory.get("email").confirm_email(uid, token)
-
+        print(verified)
         if verified:
             return Response({}, template_name="accounts/email-verified.html")
         

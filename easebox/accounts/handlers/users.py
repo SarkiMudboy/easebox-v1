@@ -5,6 +5,8 @@ from django.contrib.auth.models import AbstractBaseUser
 from typing import Dict, Optional, Any
 from .abstract import Handler
 
+from ..models import Business
+
 from .verification import VerificationHandlerFactory
 from ..validation.models import BusinessUser
 from ..validation.validators import handle_errors
@@ -48,19 +50,34 @@ class CreateBusinessUserHandler(Handler):
         if data.get("password2"):
             data.pop("password2")
 
+        user_business = data.get("business")
+
+        if user_business:
+            data["business"] = dict(user_business) 
+        
         return data
     
     def create(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
-        user = User.objects.create_user(**data)
-        user.save()
+        user_business = data.pop("business")
 
-        data["token"] = self.get_tokens(user)
-        data["id"] =  user.pk
+        user = User.objects.create_user(**data)
 
         if user:
+
+            business = self.create_business(user, user_business)
+            data["business"] = business.name
+            data["token"] = self.get_tokens(user)
+            data["id"] =  user.pk
+
             return data
     
+    def create_business(self, user: AbstractBaseUser, business_data: Dict[str, Any]) -> None:
+
+        business = Business.objects.create(owner=user, **business_data)
+        
+        return business
+
     def validate(self, data: Dict[str, Any]):
 
         try:
@@ -68,7 +85,6 @@ class CreateBusinessUserHandler(Handler):
         except ValidationError as e:
 
             error = handle_errors(e.errors())
-            # print(error)
             return data, error
 
         return data, None
@@ -80,7 +96,7 @@ class CreateBusinessUserHandler(Handler):
 
         if data.get("phone_number") and data.get("email"):
             return
-        
+
         # if not, proceed...
 
         id_field = "email" if not data.get("phone_number") else "phone"

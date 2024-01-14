@@ -44,7 +44,6 @@ class OTP:
         "Generates phone number verification OTP for user"
         key = generate_key(phone_number)
         password = HOTP().totp(key, interval)
-        print(password.key)
 
         try:
             User.objects.get(phone_number_verification_key=password.key)
@@ -58,7 +57,5 @@ class OTP:
         
         key = generate_key(phone)
         OTP = HOTP().totp(key, interval)
-
-        print(OTP.key)
         
         return OTP.verify(otp)

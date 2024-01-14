@@ -102,8 +102,8 @@ class Business(TimestampMixin, models.Model):
     owner = models.ForeignKey(User, related_name="business", on_delete=models.CASCADE)
     name = models.CharField(_("Business name"), max_length=600)
     address = models.CharField(_("Business address"), null=True, blank=True) # may need to split this into street, city etc.
-    city = models.CharField(_("Business city"), choices=OperatingCities.choices(), default=OperatingCities.ILORIN) # and I was right
-    state = models.CharField(choices=OperatingStates.choices(), default=OperatingStates.KWARA)
+    city = models.CharField(_("Business city"), choices=OperatingCities.choices, default=OperatingCities.ILORIN) # and I was right
+    state = models.CharField(choices=OperatingStates.choices, default=OperatingStates.KWARA)
     rc_num = models.CharField(_("RC Number"), null=True, blank=True)
     category = models.CharField(_("Category"), max_length=300, null=True, blank=True)
     

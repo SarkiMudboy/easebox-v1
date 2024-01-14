@@ -25,11 +25,19 @@ def handle_errors(errors: ValidationError) -> Dict[str, Any]:
 
         loc, msg = error["loc"], error["msg"]
 
-        if len(loc) > 1:
-            new_error = [{err:msg} for err in error["loc"]]
+        if loc:
+
+            if len(loc) > 1:
+                new_error = {err:msg for err in error["loc"]}
+
+            else:
+                
+                loc = loc[0]
+                new_error = {loc:msg}
+
         else:
-            loc = loc[0]
-            new_error = {loc:msg}
+
+            new_error = {"error": msg}
         
         parsed_errors.append(new_error)
 

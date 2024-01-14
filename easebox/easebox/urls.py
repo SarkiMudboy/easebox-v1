@@ -16,8 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from .drf_spectacular_urls import drf_urlpatterns
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('account/', include('accounts.urls'))
-]
+] + drf_urlpatterns

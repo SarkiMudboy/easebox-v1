@@ -6,6 +6,9 @@ from ..verification.email.verify_email import verify_email, confirm_email
 from ..verification.phone.passwords.otp import OTP
 from ..tasks import send_verification_mail
 
+from django.utils.encoding import force_str
+from django.utils.http import  urlsafe_base64_decode
+
 from ..validation.models import Verified
 from ..validation.validators import handle_errors
 from pydantic import ValidationError
@@ -47,7 +50,7 @@ class EmailVerificationHandler(Handler):
             data["user"] = data.get("request").user
         else:
             data["user"] = User.objects.get(id=data.get("id"))
-
+        
         return data 
     
     def validate(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -59,25 +62,39 @@ class EmailVerificationHandler(Handler):
         except ValidationError as e:
 
             error = handle_errors(e.errors())
-
+            self.clean_up(data)
+            
             return error
             
     def verify(self, data: Dict[str, Any]) -> None:
 
         request = data.pop("request")
-        user = data.get("user")
+        user = data.pop("user")
 
         verify_email(request, user)
 
     @staticmethod
-    def confirm_email(user: AbstractBaseUser ,uid: str, token: str) -> bool:
+    def confirm_email(uid: str, token: str) -> bool:
 
         try:
-            Verified(phone=user.phone_number)
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(id=user_id)
+        except (OverflowError, TypeError, ValueError, User.DoesNotExist):
+            return False
+        
+        try:
+            Verified(email=user.email)
         except ValidationError as e:
             return False
         
-        return confirm_email(uid, token)
+        return confirm_email(user, token)
+
+    def clean_up(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    
+        data.pop("request")
+        data.pop("user")
+    
+        return data
 
     def response(self, data: Dict[str, Any]):
         return None
@@ -118,7 +135,7 @@ class PhoneNumberVerificationHandler(Handler):
     def validate(self, phone_number: str) -> Dict[str, str]:
         
         try:
-            Verified(phone=phone_number)
+            Verified(phone_number=phone_number)
         except ValidationError as e:
             error = handle_errors(e.errors)
 
@@ -141,8 +158,8 @@ class PhoneNumberVerificationHandler(Handler):
         "This authenticates the given otp for phone number verification"
 
         try:
-            Verified(phone=phone_number)
-        except ValidationError:
+            Verified(phone_number=phone_number)
+        except ValidationError as e:
             return False
 
         provided_otp = 0

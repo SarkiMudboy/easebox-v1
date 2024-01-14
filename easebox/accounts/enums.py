@@ -78,19 +78,31 @@ class UserVerificationIDType(str, Enum):
 
 class OperatingCities(str, Enum):
 
-    ILORIN = "ILRN"
+    ILORIN = "ILORIN"
 
     @classmethod
+    @property
     def choices(cls) -> list:
         return [(key.value, key.name) for key in cls]
+    
+    @classmethod
+    @property
+    def items(cls) -> list:
+        return [key.value for key in cls]
 
 class OperatingStates(str, Enum):
 
     KWARA = "KWARA"
 
     @classmethod
+    @property
     def choices(cls) -> list:
         return [(key.value, key.name) for key in cls]
+    
+    @classmethod
+    @property
+    def items(cls) -> list:
+        return [key.value for key in cls]
     
     
 

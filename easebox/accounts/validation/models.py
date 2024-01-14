@@ -58,21 +58,29 @@ class BaseEaseboxUser(BaseUser, BaseEmail, BasePhone, BasePassword):
 
 class Verified(BasePhone, BaseEmail):
 
-    phone: PhoneNumber
-    email: EmailStr
+    phone_number: Optional[PhoneNumber] = None
+    email: Optional[EmailStr] = None
 
-    @field_validator("email", "phone")
+    @model_validator(mode="after")
+    def check_identifiers(self) -> 'Verified':
+
+        if not self.phone_number and not self.email:
+            raise ValueError("Please provide an email or phone")
+        
+        return self
+
+    @field_validator("email", "phone_number")
     @classmethod
     def validate(cls, ID: str, values: ValidationInfo) -> str:
 
         query = {f"{values.field_name}__iexact": ID}
         
         user = User.objects.get(**query)
-
-        if ID == "email" and user.is_email_verified:
+        
+        if values.field_name == "email" and user.is_email_verified:
             raise ValueError("This email has already been verified")
         
-        if ID == "phone number" and user.is_phone_number_verified:
+        if values.field_name == "phone_number" and user.is_phone_number_verified:
             raise ValueError("This phone number has already been verified")
         
         return ID
@@ -80,12 +88,11 @@ class Verified(BasePhone, BaseEmail):
 
 class BaseBusiness(BaseModel):
 
-    name: str
-    address: str
-    city: str
-    state: str
-    category: str
-    rc_num: Optional[str] = None
+    name: str = Field(max_length=600)
+    address: str = Field(max_lenth=600)
+    city: str = Field(max_lenth=600)
+    state: str = Field(max_lenth=100)
+    category: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_locations_type(self) -> 'BaseBusiness':
@@ -98,10 +105,10 @@ class BaseBusiness(BaseModel):
     @model_validator(mode="after")
     def check_supported_locations(self) -> 'BaseBusiness':
 
-        if self.city not in OperatingCities.choices: 
+        if self.city.upper() not in OperatingCities.items:
             raise ValueError(f"{self.city} not supported")
 
-        if self.state not in OperatingStates.choices:
+        if self.state.upper() not in OperatingStates.items:
             raise ValueError(f"{self.state} not supported")
         
         return self
@@ -114,40 +121,30 @@ class BaseBusiness(BaseModel):
 
 class Business(BaseEaseboxUser, BaseBusiness):
 
-    # Business
-    name: str = Field(max_length=600)
-    address: str = Field(max_lenth=600, required=True)
-    city: str = Field(max_lenth=600, required=True)
-    state: str = Field(max_lenth=100, required=True)
-    category: Optional[str]
+    ...
 
     
-class BusinessUser(BaseUser, BaseEmail, BasePhone, BasePassword, BaseBusiness):
+class BusinessUser(BaseUser, BaseEmail, BasePhone, BasePassword):
     # User
 
-    first_name: str = Field(max_length=250, required=True)
-    last_name :str = Field(max_length=250, required=True)
+    model_config= ConfigDict(arbitrary_types_allowed=True)
 
-    email: Optional[EmailStr] = Field(description="User's email address")
-    phone_number: Optional[PhoneNumber] = Field(description="User's phone number")
+    first_name: str = Field(max_length=250)
+    last_name :str = Field(max_length=250)
+
+    email: Optional[EmailStr] = None
+    phone_number: Optional[PhoneNumber] = None
     
     password: str = Field(max_length=250)
     accept_terms_and_privacy: StrictBool = Field(default=False)
 
     # Business
-    name: str = Field(max_length=600, required=True)
-    address: str = Field(max_lenth=600, required=True)
-    city: str = Field(max_lenth=600, required=True)
-    state: str = Field(max_lenth=100, required=True)
-    category: Optional[str] = None
-
-    # phone num in its base
-
+    business: Optional[BaseBusiness] = None
 
     @field_validator("email", "phone_number")
     @classmethod
     def validate_identifiers(cls, identifier: str, value: ValidationInfo) -> str:
-        
+    
         query = {f"{value.field_name}__iexact": identifier}
 
         if User.objects.filter(**query).exists():
