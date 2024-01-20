@@ -11,7 +11,7 @@ User = get_user_model()
 class HOTP:
 
     @classmethod
-    def totp(cls, k, t):
+    def totp(cls, k: bytes, t:int) -> 'HOTP':
 
         s_since_epoch = time.mktime(datetime.now().timetuple())
         time_steps = int(s_since_epoch/t)

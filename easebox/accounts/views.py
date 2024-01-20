@@ -97,7 +97,7 @@ class EmailConfirmationView(AuthViewSet):
     def confirm_email_token(self, request: HttpRequest, uid: str, token: str) -> Response:
 
         verified = VerificationHandlerFactory.get("email").confirm_email(uid, token)
-        print(verified)
+        
         if verified:
             return Response({}, template_name="accounts/email-verified.html")
         
@@ -130,6 +130,7 @@ class PhoneNumberVerificationView(AuthViewSet):
         if handler.authenticate(otp, user.phone_number):
 
             user.is_phone_number_verified = True
+            user.phone_number_verification_key = otp # I may be wrong to put it here I dunno
             user.save()
 
             return Response({"phone": "Your phone number has been verified"}, status=status.HTTP_200_OK)
