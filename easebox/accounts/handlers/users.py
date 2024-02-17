@@ -59,14 +59,18 @@ class CreateBusinessUserHandler(Handler):
     
     def create(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
-        user_business = data.pop("business")
+        user_business = None
+
+        if data.get('business'):
+            user_business = data.pop("business")
 
         user = User.objects.create_user(**data)
 
         if user:
-
-            business = self.create_business(user, user_business)
-            data["business"] = business.name
+            if user_business:
+                business = self.create_business(user, user_business)
+                data["business"] = business.name
+                
             data["token"] = self.get_tokens(user)
             data["id"] =  user.pk
 

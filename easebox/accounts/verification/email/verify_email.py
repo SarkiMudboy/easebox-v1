@@ -25,7 +25,7 @@ def verify_email(request, user: AbstractBaseUser) -> bool:
     user.email_verification_key_expires = pendulum.now("UTC").add(days=7)
     user.save()
 
-    verify_email_path = reverse("verify-email-confirm", kwargs={"uid": user_id, "token": verification_token})
+    verify_email_path = reverse("accounts:confirm-email", kwargs={"uid": user_id, "token": verification_token})
 
     email = user.email
     subject = "Verify Email"
