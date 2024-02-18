@@ -6,3 +6,9 @@ def send_verification_mail(*args) -> None:
 
     mail = Email(*args)
     mail.send()
+
+@shared_task()
+def send_password_recovery_mail(*args) -> None:
+
+    mail = Email(*args)
+    mail.send()

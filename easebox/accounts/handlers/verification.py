@@ -28,20 +28,17 @@ class VerificationHandlerFactory(object):
         return enpoint_handlers[endpoint]()
     
 
-
 class EmailVerificationHandler(Handler):
     
     def run(self, data, *kwargs):
 
         data = self.transform(data)
-
         error = self.validate(data)
 
         if error:
             return error
         
         self.verify(data)
-
         return self.response(data)
     
     def transform(self, data: Dict[str, Any]) -> dict:
@@ -148,7 +145,6 @@ class PhoneNumberVerificationHandler(Handler):
 
         email = "ihimaabdool@gmail.com"
         subject = "Confirm phone number"
-
         sms_message = f"Your easebox confirmation code is {str(otp)}. Valid for 10 minutes, one-time use only."
 
         send_verification_mail.delay(subject, sms_message, email)

@@ -2,7 +2,7 @@ from abc import abstractclassmethod, abstractmethod
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import AbstractBaseUser
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Tuple
 from .abstract import Handler
 
 from ..models import Business
@@ -33,16 +33,13 @@ class CreateBusinessUserHandler(Handler):
     def run(self, data: Dict[str, Any], **kwargs)-> Dict[str, Any]:
 
         data = self.transform(data)
-
         data, errors = self.validate(data)
 
         if errors:
             return data, errors
         
         data = self.create(data)
-
         self.verify_user(data, **kwargs)
-
         return self.response(data)
     
     def transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -79,10 +76,9 @@ class CreateBusinessUserHandler(Handler):
     def create_business(self, user: AbstractBaseUser, business_data: Dict[str, Any]) -> None:
 
         business = Business.objects.create(owner=user, **business_data)
-        
         return business
 
-    def validate(self, data: Dict[str, Any]):
+    def validate(self, data: Dict[str, Any]) -> Tuple[Dict[str, Any], None]:
 
         try:
             BusinessUser.model_validate(data)

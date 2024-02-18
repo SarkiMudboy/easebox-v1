@@ -61,7 +61,9 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
     email_verification_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
     
     email_verification_key_expires = models.DateTimeField(_("Email key expires at"), null=True)
-
+    
+    password_reset_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    password_reset_key_expires =  models.DateTimeField(_("Email key expires at"), null=True)
     # support_tickets = models.Model(Tickets, null=True, blank=True, on_delete=models.CASCADE())
 
     USERNAME_FIELD = "email"

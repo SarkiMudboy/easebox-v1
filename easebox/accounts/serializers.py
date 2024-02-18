@@ -103,3 +103,25 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Please provide an email or phone number")
         
         return attrs
+    
+
+class PasswordRecoverySerializer(serializers.Serializer):
+
+    email = serializers.EmailField(required=False)
+    phone_number = serializers.CharField(required=False)
+
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+
+        email = attrs.get("email")
+        phone_number = attrs.get("phone_number")
+
+        if not email and not phone_number:
+            raise serializers.ValidationError("Please provide an email or phone number")
+        elif email:
+            if not User.objects.filter(email=email).exists():
+                raise serializers.ValidationError("Account with that email does not exist")
+        elif phone_number:
+            if not User.objects.filter(phone_number=phone_number).exists():
+                raise serializers.ValidationError("Account with that phone number does not exist")
+            
+        return attrs

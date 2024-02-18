@@ -38,7 +38,6 @@ def verify_email(request, user: AbstractBaseUser) -> bool:
     }
 
     message = render_to_string("accounts/verify-email.html", context)
-
     send_verification_mail.delay(subject, message, email)
 
 
