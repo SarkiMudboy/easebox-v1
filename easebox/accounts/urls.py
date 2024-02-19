@@ -20,6 +20,7 @@ verify_email = EmailVerificationView.as_view({"post": "verify_email"})
 
 forgot_password = PasswordRecoveryView.as_view({"get": "forgot_password"})
 verify_reset_password = PasswordRecoveryView.as_view({"get": "verify_reset_password"})
+reset_password = PasswordRecoveryView.as_view({"post": "reset_password"})
 
 urlpatterns = [
     path('register-business-user/', RegisterBusinessUserView.as_view(), name="business-user-sign-up"),
@@ -39,5 +40,6 @@ urlpatterns = [
 
     # password
     path("forgot-password/", forgot_password, name="forgot-password"),
-    path("verify-reset-password/<uid>/<token>/", forgot_password, name="verify-reset-password"),
+    path("verify-reset-password/<uid>/", verify_reset_password, name="verify-reset-password"),
+    path("reset-password/<token>/", reset_password, name="reset-password"),
 ]

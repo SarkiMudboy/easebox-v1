@@ -14,8 +14,10 @@ from typing import Any, Dict, Optional, Tuple
 from .abstract import Handler
 from ..tasks import send_password_recovery_mail
 
-# from six import text_type
+from six import text_type
 import pendulum
+import secrets
+import hashlib
 
 User: AbstractBaseUser = get_user_model()
 
@@ -31,6 +33,12 @@ class PasswordRecoveryHandlerFactory(object):
 
         return endpoint_handlers[endpoint]()
 
+
+class PasswordResetToken(PasswordResetTokenGenerator):
+
+    def _make_hash_value(self, user: AbstractBaseUser, timestamp: int) -> str:
+        
+        return text_type(user.pk) + text_type(timestamp) + text_type(user.is_email_verified)
 
 class EmailPasswordRecoveryHandler(Handler):
 
@@ -55,6 +63,7 @@ class EmailPasswordRecoveryHandler(Handler):
     def validate(self, data: Dict[str, Any]) -> Tuple[Dict[str, Any], None]:
 
         user = data.get("user")
+        # check that it's not a superuser
         if user.is_superuser:
             return data, {"user": "Unauthorized resource"}
         
@@ -65,15 +74,10 @@ class EmailPasswordRecoveryHandler(Handler):
         # we need user, request scheme, request current site
 
         user: AbstractBaseUser = data.get("user")
-        email_token = PasswordResetTokenGenerator()
-        password_reset_token = email_token.make_token(user)
-
-        user.password_reset_key = password_reset_token
-        user.password_reset_key_expires = pendulum.now("UTC").add(days=7)
-
         user_id = urlsafe_base64_encode(force_bytes(user.id))
-        recovery_url = self._generate_recovery_url(user_id, password_reset_token, **kwargs)
+        email_recovery_url = reverse("accounts:verify-reset-password", kwargs={"uid": user_id})
 
+        recovery_url = self._generate_recovery_url(email_recovery_url, **kwargs)
         context = {
             "request": kwargs.get("request"),
             "user": user,
@@ -88,25 +92,62 @@ class EmailPasswordRecoveryHandler(Handler):
         url: RequestSite = get_current_site(request)
         return url.domain, request.scheme
     
-    def _generate_recovery_url(self, user_id: str, token:str, **kwargs) -> str:
-
-        domain, scheme = self._get_request_data(kwargs.get("request"))
-        password_recovery_path: str = reverse("accounts:verify-reset-password", kwargs={"uid": user_id, "token": token})
-        url: str = "%s://%s%s"%(scheme, domain, password_recovery_path)
+    def _generate_recovery_url(self, url_path: str, **kwargs) -> str:
+        domain, scheme = self._get_request_data(kwargs.get("request")) 
+        url: str = "%s://%s%s"%(scheme, domain, url_path)
         return url
     
-    @staticmethod
-    def verify(uid: str, token: str) -> bool:
-        try:
-            user_id = force_str(urlsafe_base64_decode(uid))
-            user = User.objects.get(id=user_id)
-        except (OverflowError, TypeError, ValueError, User.DoesNotExist):
-            return False
+    def generate_token(self, uid: str) -> Tuple[Dict[str, str], bool]:
         
-        email_token = PasswordResetTokenGenerator()
-        if user is not None and email_token.check_token(user, token) and user.password_reset_key_expires > pendulum.now():
-            return True
-        return False
+        try:
+            user_id: str = force_str(urlsafe_base64_decode(uid))
+            user: AbstractBaseUser = User.objects.get(id=user_id)
+        except (OverflowError, TypeError, ValueError, User.DoesNotExist):
+            return None, True
+        
+        # generate a token using secrets.urlsafe
+        password_token = secrets.token_urlsafe(50)
+        # hash it
+        token_hash = hashlib.sha256(password_token.encode("utf-8")).hexdigest()
+        # assign to user.password_reset_key
+        user.password_reset_key = token_hash
+        user.password_reset_key_expires = pendulum.now("UTC").add(minutes=5)
+        user.save()
+
+        # generate the url using reverse and the genrate_recovery_url method
+        url_path = reverse("accounts:reset-password", kwargs={"token": password_token})
+        # return the url in a response dict to be used by the template
+        context_data = {
+            "reset_password_url": url_path
+            }
+        return context_data, False
     
+    def verify(self, token: str) -> AbstractBaseUser:
+        # get the token
+        # hash it 
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        # compare with hashed value in the db (query which user has an identical hash) AND check the expiry
+        try:
+            user = User.objects.get(password_reset_key=token_hash)
+        except (OverflowError, TypeError, ValueError, User.DoesNotExist):
+            return None
+
+        if user.password_reset_key_expires < pendulum.now():
+            return None
+        
+        # delete the value form db
+        user.password_reset_key = None
+        user.save()
+        return user
+
+    def reset_password(self, data: Dict[str, Any], token: str) -> Tuple[Dict[str, str], bool]:
+        user = self.verify(token)
+        if not user:
+            return None, True
+        password = data.get("password")
+        user.set_password(password)
+        user.save()
+        return {}, False
+
     def response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return data, None

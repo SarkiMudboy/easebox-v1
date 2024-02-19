@@ -125,3 +125,22 @@ class PasswordRecoverySerializer(serializers.Serializer):
                 raise serializers.ValidationError("Account with that phone number does not exist")
             
         return attrs
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+
+    password = serializers.CharField(required=True, validators=[validate_password])
+    confirm_password = serializers.CharField(write_only=True, required=True)
+
+    def validate(self, attrs: Dict[str, Any]):
+
+        if not attrs.get("password"):
+            raise serializers.ValidationError("Please provide a password")
+        
+        if not attrs.get("confirm_password"):
+            raise serializers.ValidationError("Confirm password")
+        
+        if attrs.get("password") != attrs.get("confirm_password"):
+            raise serializers.ValidationError("Passwords must match")
+        
+        return attrs

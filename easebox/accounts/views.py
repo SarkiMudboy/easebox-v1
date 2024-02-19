@@ -6,7 +6,7 @@ from rest_framework import serializers
 from rest_framework import permissions, authentication
 from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
-from .serializers import RegisterBusinessUserSerializer, LoginSerializer, PasswordRecoverySerializer
+from .serializers import RegisterBusinessUserSerializer, LoginSerializer, PasswordRecoverySerializer, ResetPasswordSerializer
 from rest_framework.response import Response
 from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.contrib.auth import authenticate
@@ -154,12 +154,24 @@ class PasswordRecoveryView(AnonViewSet):
         
         return JsonResponse({"response": "success"}, status=status.HTTP_200_OK)
 
-    def verify_reset_password(self, request: HttpRequest, uid: str, token: str) -> Response:
+    def verify_reset_password(self, request: HttpRequest, uid: str) -> Response:
 
-        print("verified -> ")
-        verified = PasswordRecoveryHandlerFactory.get("email").verify(uid, token)
-        if not verified:
+        handler = PasswordRecoveryHandlerFactory.get("email")
+        response, error = handler.generate_token(uid)
+
+        if error:
             return Response(400)
         
-        return Response({}, template_name="accounts/reset-password.html")
+        return Response(response, template_name="accounts/reset-password.html", status=status.HTTP_200_OK)
+    
+    def reset_password(self, request: HttpRequest, token: str) -> Response:
+        serializer = ResetPasswordSerializer(data=request.POST.dict())
+        serializer.is_valid(raise_exception=True)
+        handler = PasswordRecoveryHandlerFactory.get("email")
+        response, error = handler.reset_password(serializer.validated_data, token)
+        print(response, error)
+        if error:
+            return Response(400)
+
+        return Response(template_name="accounts/password-reset-success.html", status=status.HTTP_200_OK)
         
