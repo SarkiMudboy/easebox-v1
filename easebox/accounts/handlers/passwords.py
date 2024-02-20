@@ -34,12 +34,6 @@ class PasswordRecoveryHandlerFactory(object):
         return endpoint_handlers[endpoint]()
 
 
-class PasswordResetToken(PasswordResetTokenGenerator):
-
-    def _make_hash_value(self, user: AbstractBaseUser, timestamp: int) -> str:
-        
-        return text_type(user.pk) + text_type(timestamp) + text_type(user.is_email_verified)
-
 class EmailPasswordRecoveryHandler(Handler):
 
     def run(self, data: Dict[str, Any], **kwargs)-> Dict[str, Any]:
@@ -70,12 +64,13 @@ class EmailPasswordRecoveryHandler(Handler):
         return data, None # for now
     
     def send_recovery_email(self, data: Dict[str, Any], **kwargs) -> None:
-        # this would have the flow from verify_email.py
-        # we need user, request scheme, request current site
 
         user: AbstractBaseUser = data.get("user")
         user_id = urlsafe_base64_encode(force_bytes(user.id))
         email_recovery_url = reverse("accounts:verify-reset-password", kwargs={"uid": user_id})
+
+        user.active_password_reset_link = True
+        user.save()
 
         recovery_url = self._generate_recovery_url(email_recovery_url, **kwargs)
         context = {
@@ -105,6 +100,10 @@ class EmailPasswordRecoveryHandler(Handler):
         except (OverflowError, TypeError, ValueError, User.DoesNotExist):
             return None, True
         
+        # check to see if the link has been redeemed
+        if not user.active_password_reset_link:
+            return None, True
+        user.active_password_reset_link = False
         # generate a token using secrets.urlsafe
         password_token = secrets.token_urlsafe(50)
         # hash it
@@ -144,6 +143,7 @@ class EmailPasswordRecoveryHandler(Handler):
         user = self.verify(token)
         if not user:
             return None, True
+        
         password = data.get("password")
         user.set_password(password)
         user.save()

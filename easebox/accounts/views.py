@@ -169,7 +169,7 @@ class PasswordRecoveryView(AnonViewSet):
         serializer.is_valid(raise_exception=True)
         handler = PasswordRecoveryHandlerFactory.get("email")
         response, error = handler.reset_password(serializer.validated_data, token)
-        print(response, error)
+        
         if error:
             return Response(400)
 
