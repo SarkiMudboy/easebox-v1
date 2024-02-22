@@ -59,12 +59,14 @@ class User(AbstractBaseUser, PermissionsMixin, TimestampMixin):
 
     phone_number_verification_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
     email_verification_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    
     email_verification_key_expires = models.DateTimeField(_("Email key expires at"), null=True)
     
+    # password reset
     password_reset_key = models.CharField(max_length=100, unique=True, null=True, blank=True)
     password_reset_key_expires =  models.DateTimeField(_("Email key expires at"), null=True)
     active_password_reset_link = models.BooleanField(default=False)
+    password_reset_otp = models.CharField(max_length=6, unique=True, null=True, blank=True)
+
     # support_tickets = models.Model(Tickets, null=True, blank=True, on_delete=models.CASCADE())
 
     USERNAME_FIELD = "email"

@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from .abstract import Handler
 from typing import Dict, Optional, Any, List
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from ..verification.email.verify_email import verify_email, confirm_email
 from ..verification.phone.passwords.otp import OTP
 from ..tasks import send_verification_mail
@@ -99,9 +100,9 @@ class EmailVerificationHandler(Handler):
 
 class PhoneNumberVerificationHandler(Handler):
     
-    def run(self, data: Dict[str, Any], *kwargs):
+    def run(self, data: Dict[str, Any], **kwargs):
 
-        phone = self.transform(data)
+        phone = self.transform(data, **kwargs)
 
         if not phone:
             return True
@@ -115,17 +116,22 @@ class PhoneNumberVerificationHandler(Handler):
 
         return self.response()
     
-    def transform(self, data: Dict[str, Any]) -> str:
-
+    def transform(self, data: Dict[str, Any], **kwargs) -> str:
+        user = None
+        # remove request if its from sign iup
         if data.get("request"):
             data.pop("request")
 
-        user_id = data.get("id")
+        request = kwargs.get("request")
+        if request:
+            user = request.user
+        else:
+            user_id = data.get("id")
 
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return None
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                return None
 
         return user.phone_number
     

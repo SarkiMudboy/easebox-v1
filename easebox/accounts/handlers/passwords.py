@@ -13,6 +13,7 @@ from django.urls import reverse
 from typing import Any, Dict, Optional, Tuple
 from .abstract import Handler
 from ..tasks import send_password_recovery_mail
+from ..verification.phone.passwords.otp import OTP
 
 from six import text_type
 import pendulum
@@ -28,7 +29,7 @@ class PasswordRecoveryHandlerFactory(object):
 
         endpoint_handlers = {
             "email": EmailPasswordRecoveryHandler,
-            # "phone": PhonePasswordRecoveryHandler
+            "phone": PhonePasswordRecoveryHandler
         }
 
         return endpoint_handlers[endpoint]()
@@ -70,6 +71,7 @@ class EmailPasswordRecoveryHandler(Handler):
         email_recovery_url = reverse("accounts:verify-reset-password", kwargs={"uid": user_id})
 
         user.active_password_reset_link = True
+        user.password_reset_key_expires = pendulum.now("UTC").add(minutes=5)
         user.save()
 
         recovery_url = self._generate_recovery_url(email_recovery_url, **kwargs)
@@ -100,8 +102,8 @@ class EmailPasswordRecoveryHandler(Handler):
         except (OverflowError, TypeError, ValueError, User.DoesNotExist):
             return None, True
         
-        # check to see if the link has been redeemed
-        if not user.active_password_reset_link:
+        # check to see if the link has been redeemed/key has not expired
+        if not user.active_password_reset_link or user.password_reset_key_expires < pendulum.now():
             return None, True
         user.active_password_reset_link = False
         # generate a token using secrets.urlsafe
@@ -110,7 +112,7 @@ class EmailPasswordRecoveryHandler(Handler):
         token_hash = hashlib.sha256(password_token.encode("utf-8")).hexdigest()
         # assign to user.password_reset_key
         user.password_reset_key = token_hash
-        user.password_reset_key_expires = pendulum.now("UTC").add(minutes=5)
+        # user.password_reset_key_expires = pendulum.now("UTC").add(minutes=5)
         user.save()
 
         # generate the url using reverse and the genrate_recovery_url method
@@ -130,7 +132,7 @@ class EmailPasswordRecoveryHandler(Handler):
             user = User.objects.get(password_reset_key=token_hash)
         except (OverflowError, TypeError, ValueError, User.DoesNotExist):
             return None
-
+         
         if user.password_reset_key_expires < pendulum.now():
             return None
         
@@ -151,3 +153,98 @@ class EmailPasswordRecoveryHandler(Handler):
 
     def response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return data, None
+    
+class PhonePasswordRecoveryHandler(Handler):
+
+    def run(self, data: Dict[str, Any], **kwargs) -> Tuple[Dict[str, Any], bool]:
+        data = self.transform(data)
+        data, error = self.validate(data)
+        if error:
+            return None, True
+        
+        self.send_recovery_otp(data)
+        return self.response(data)
+    
+    def transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        phone = data.get("phone_number")
+        user = User.objects.get(phone_number=phone)
+        data["user"] = user
+
+        return data
+    
+    def validate(self, data: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
+        user = data.get("user")
+        # check that it's not a superuser
+        if user.is_superuser:
+            return data, {"user": "Unauthorized resource"}
+        
+        return data, None # for now
+    
+    def send_recovery_otp(self, data: Dict[str, Any]) -> None:
+        user = data["user"]
+        interval = 200
+        otp = OTP.generate_otp(user.phone_number, interval)
+
+        user.password_reset_otp = otp
+        user.password_reset_key_expires = pendulum.now("UTC").add(minutes=5) # change the time here, can't have it being less than the otp
+        user.save()
+
+        email = "ihimaabdool@gmail.com"
+        subject = "Reset Password"
+        sms_message = f"Your password reset OTP code is {str(otp)}. Valid for 10 minutes, one-time use only."
+
+        send_password_recovery_mail.delay(subject, sms_message, email)
+
+    def verify_otp(self, otp: str) -> Optional[str]:
+        # get the user
+        try:
+            user = User.objects.get(password_reset_otp=otp)
+        except (OverflowError, ValueError, User.DoesNotExist):
+            return None
+        else:
+            user.password_reset_otp = None
+        
+        provided_otp = 0
+        try:
+            provided_otp = str(otp)
+        except:
+            return None
+        
+        if OTP.verify_otp(provided_otp, user.phone_number, 200) and user.password_reset_key_expires > pendulum.now():
+
+            # generate a token using secrets.urlsafe
+            password_token = secrets.token_urlsafe(50)
+            # hash it
+            token_hash = hashlib.sha256(password_token.encode("utf-8")).hexdigest()
+            # assign to user.password_reset_key
+            user.password_reset_key = token_hash
+            # user.password_reset_key_expires = pendulum.now("UTC").add(minutes=5)
+            user.save()
+
+            return reverse("accounts:reset-password", kwargs={"token": password_token})
+        
+        return None
+    
+    def reset_password(self, data: Dict[str, Any], token:str) -> Tuple[Dict[str, str], bool]:
+
+        token_hash = secrets.token_urlsafe(token)
+
+        try:
+            user = User.objects.get(password_reset_key=token_hash)
+        except (OverflowError, ValueError, User.DoesNotExist):
+            return None, False
+        
+        if user.password_reset_key_expires < pendulum.now():
+            return None, False
+        
+        user.password_reset_key = None
+        user.set_password(data.get("password"))
+        user.save()
+
+        return {}, True
+
+    def response(self, data: Dict[str, Any]) -> Tuple[Dict[str, Any], bool]:
+        return data, False
+
+        
+        

@@ -90,7 +90,7 @@ class EmailVerificationView(AuthViewSet):
         
         return Response({}, status=status.HTTP_400_BAD_REQUEST)
 
-class EmailConfirmationView(AuthViewSet):
+class EmailConfirmationView(AuthViewSet): #change to anonviewset
 
     permission_classes = [permissions.AllowAny]
     authentication_classes = []
@@ -109,9 +109,8 @@ class PhoneNumberVerificationView(AuthViewSet):
 
     def send_otp_sms(self, request: HttpRequest, format=None, **kwargs) -> Response:
 
-        user = request.user
         handler = VerificationHandlerFactory.get("phone")
-        error = handler.run(user.phone_number)
+        error = handler.run({}, request=request)
 
         if error:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -165,13 +164,30 @@ class PasswordRecoveryView(AnonViewSet):
         return Response(response, template_name="accounts/reset-password.html", status=status.HTTP_200_OK)
     
     def reset_password(self, request: HttpRequest, token: str) -> Response:
-        serializer = ResetPasswordSerializer(data=request.POST.dict())
+        data = request.data
+        if not data:
+            data = request.POST.dict()
+        serializer = ResetPasswordSerializer(data=data)
         serializer.is_valid(raise_exception=True)
-        handler = PasswordRecoveryHandlerFactory.get("email")
+
+        id_field = "email" if not serializer.data.get("phone_number") else "phone"
+        handler = PasswordRecoveryHandlerFactory.get(id_field)
         response, error = handler.reset_password(serializer.validated_data, token)
         
         if error:
-            return Response(400)
+            return JsonResponse({"error": "Reset link is invalid or has expired"}, status=status.HTTP_400_BAD_REQUEST) # change this to include a template with context switch
 
-        return Response(template_name="accounts/password-reset-success.html", status=status.HTTP_200_OK)
+        if id_field == "phone":
+            return JsonResponse({"success": "Your password has been reset sucessfully"}, status.HTTP_200_OK)
         
+        return Response(template_name="accounts/password-reset-success.html", status=status.HTTP_200_OK)
+    
+    def verify_password_reset_otp(self, request: HttpRequest) -> JsonResponse:
+    
+        otp = str(request.data.get("sms_code"))
+        handler = PasswordRecoveryHandlerFactory.get("phone")
+
+        reset_url = handler.verify_otp(otp)
+        if reset_url:
+            return JsonResponse({"password_recovery_url": reset_url}, status=status.HTTP_200_OK)
+        return JsonResponse({"error": "Invalid or expired code"}, status=status.HTTP_200_OK)
